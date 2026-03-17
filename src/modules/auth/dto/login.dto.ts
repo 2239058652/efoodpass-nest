@@ -1,13 +1,19 @@
-import { IsNotEmpty, IsString, Length } from 'class-validator'
+import { IsNotEmpty, IsString } from 'class-validator'
 
 export class LoginDto {
+    /**
+     * 用户名
+     * @example admin
+     */
     @IsString()
-    @IsNotEmpty()
-    @Length(1, 50)
+    @IsNotEmpty({ message: '用户名不能为空' })
     username: string
 
+    /**
+     * 密码
+     * @example Admin@123
+     */
     @IsString()
-    @IsNotEmpty()
-    @Length(1, 100)
+    @IsNotEmpty({ message: '密码不能为空' })
     password: string
 }

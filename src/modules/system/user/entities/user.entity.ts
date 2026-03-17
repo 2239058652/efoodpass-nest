@@ -8,14 +8,11 @@ export class UserEntity {
     @Column({ name: 'username', type: 'varchar', length: 50, unique: true })
     username: string
 
-    @Column({ name: 'password', type: 'varchar', length: 255 })
-    password: string
+    @Column({ name: 'password_hash', type: 'varchar', length: 255 })
+    passwordHash: string
 
     @Column({ name: 'nickname', type: 'varchar', length: 50, nullable: true })
     nickname: string | null
-
-    @Column({ name: 'real_name', type: 'varchar', length: 50, nullable: true })
-    realName: string | null
 
     @Column({ name: 'phone', type: 'varchar', length: 20, nullable: true })
     phone: string | null
@@ -26,9 +23,9 @@ export class UserEntity {
     @Column({ name: 'token_version', type: 'int', default: 0 })
     tokenVersion: number
 
-    @CreateDateColumn({ name: 'create_time', type: 'datetime' })
+    @CreateDateColumn({ name: 'created_at', type: 'datetime' })
     createTime: Date
 
-    @UpdateDateColumn({ name: 'update_time', type: 'datetime' })
+    @UpdateDateColumn({ name: 'updated_at', type: 'datetime' })
     updateTime: Date
 }

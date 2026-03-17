@@ -1,8 +1,8 @@
 export interface CurrentUser {
     userId: number
     username: string
-    status: number
+    nickname: string | null
     tokenVersion: number
     roleCodes: string[]
-    permCodes: string[]
+    permissionCodes: string[]
 }

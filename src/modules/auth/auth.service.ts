@@ -1,12 +1,10 @@
 import { Injectable } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
 import { JwtService } from '@nestjs/jwt'
 import * as bcrypt from 'bcrypt'
 import { In, Repository } from 'typeorm'
-import { BizErrorCode } from '../../common/constants/biz-error-code'
 import { BusinessException } from '../../common/exceptions/business.exception'
-import { CurrentUser } from '../../common/interfaces/current-user.interface'
+import type { CurrentUser } from '../../common/interfaces/current-user.interface'
 import { LoginDto } from './dto/login.dto'
 import { LoginResponseDto } from './dto/login-response.dto'
 import { CurrentUserResponseDto } from './dto/current-user-response.dto'
@@ -30,51 +28,42 @@ export class AuthService {
         @InjectRepository(PermissionEntity)
         private readonly permissionRepository: Repository<PermissionEntity>,
         private readonly jwtService: JwtService,
-        private readonly configService: ConfigService,
     ) {}
 
+    /**
+     * 登录
+     * @param loginDto
+     */
     async login(loginDto: LoginDto): Promise<LoginResponseDto> {
         const user = await this.userRepository.findOne({
             where: { username: loginDto.username },
         })
 
         if (!user) {
-            throw new BusinessException(BizErrorCode.USERNAME_OR_PASSWORD_INVALID, '用户名或密码错误')
-        }
-
-        const isPasswordValid = await bcrypt.compare(loginDto.password, user.password)
-        if (!isPasswordValid) {
-            throw new BusinessException(BizErrorCode.USERNAME_OR_PASSWORD_INVALID, '用户名或密码错误')
+            throw new BusinessException(4001, '用户名或密码错误')
         }
 
         if (user.status !== 1) {
-            throw new BusinessException(BizErrorCode.USER_DISABLED, '用户已被禁用')
+            throw new BusinessException(4002, '用户已被禁用')
         }
 
-        const { roleCodes, permCodes } = await this.loadUserAuthInfo(user.id)
+        const matched = await bcrypt.compare(loginDto.password, user.passwordHash)
+        if (!matched) {
+            throw new BusinessException(4001, '用户名或密码错误')
+        }
 
-        const payload: CurrentUser = {
+        const token = await this.jwtService.signAsync({
             userId: user.id,
             username: user.username,
-            status: user.status,
-            tokenVersion: user.tokenVersion,
-            roleCodes,
-            permCodes,
-        }
-
-        const accessToken = await this.jwtService.signAsync(payload)
+            nickname: user.nickname,
+            tokenVersion: user.tokenVersion ?? 0,
+        })
 
         return {
-            accessToken,
-            tokenType: 'Bearer',
-            expiresIn: this.configService.get<string>('jwt.expiresIn', '7d'),
-            userInfo: {
-                userId: user.id,
-                username: user.username,
-                nickname: user.nickname,
-                roleCodes,
-                permCodes,
-            },
+            token,
+            userId: user.id,
+            username: user.username,
+            nickname: user.nickname,
         }
     }
 
@@ -84,112 +73,109 @@ export class AuthService {
         })
 
         if (!user) {
-            throw new BusinessException(BizErrorCode.USER_NOT_FOUND, '用户不存在')
+            throw new BusinessException(4004, '用户不存在')
         }
 
-        const { roleCodes, permCodes } = await this.loadUserAuthInfo(user.id)
+        const roleCodes = await this.getRoleCodesByUserId(userId)
+        const permissionCodes = await this.getPermissionCodesByUserId(userId)
 
         return {
             userId: user.id,
             username: user.username,
             nickname: user.nickname,
-            status: user.status,
-            tokenVersion: user.tokenVersion,
             roleCodes,
-            permCodes,
+            permissionCodes,
         }
     }
 
-    async validateJwtUser(payload: CurrentUser): Promise<CurrentUser> {
+    async validateJwtUser(payload: {
+        userId: number
+        username: string
+        nickname?: string | null
+        tokenVersion: number
+    }): Promise<CurrentUser> {
         const user = await this.userRepository.findOne({
             where: { id: payload.userId },
         })
 
         if (!user) {
-            throw new BusinessException(BizErrorCode.USER_NOT_FOUND, '用户不存在')
+            throw new BusinessException(4004, '用户不存在')
         }
 
         if (user.status !== 1) {
-            throw new BusinessException(BizErrorCode.USER_DISABLED, '用户已被禁用')
+            throw new BusinessException(4002, '用户已被禁用')
         }
 
-        if (user.tokenVersion !== payload.tokenVersion) {
-            throw new BusinessException(BizErrorCode.TOKEN_INVALID, 'token 已失效')
+        if ((user.tokenVersion ?? 0) !== payload.tokenVersion) {
+            throw new BusinessException(4003, '登录状态已失效')
         }
 
-        const { roleCodes, permCodes } = await this.loadUserAuthInfo(user.id)
+        const roleCodes = await this.getRoleCodesByUserId(user.id)
+        const permissionCodes = await this.getPermissionCodesByUserId(user.id)
 
         return {
             userId: user.id,
             username: user.username,
-            status: user.status,
-            tokenVersion: user.tokenVersion,
+            nickname: user.nickname,
+            tokenVersion: user.tokenVersion ?? 0,
             roleCodes,
-            permCodes,
+            permissionCodes,
         }
     }
 
-    private async loadUserAuthInfo(userId: number): Promise<{
-        roleCodes: string[]
-        permCodes: string[]
-    }> {
+    private async getRoleCodesByUserId(userId: number): Promise<string[]> {
         const userRoles = await this.userRoleRepository.find({
             where: { userId },
         })
 
         if (userRoles.length === 0) {
-            return {
-                roleCodes: [],
-                permCodes: [],
-            }
+            return []
         }
 
-        const roleIds = userRoles.map((item) => item.roleId)
         const roles = await this.roleRepository.find({
             where: {
-                id: In(roleIds),
+                id: In(userRoles.map((item) => item.roleId)),
             },
         })
 
-        const enabledRoles = roles.filter((role) => role.status === 1)
-        const roleCodes = enabledRoles.map((role) => role.roleCode)
+        return roles.map((item) => item.roleCode)
+    }
 
-        if (enabledRoles.length === 0) {
-            return {
-                roleCodes,
-                permCodes: [],
-            }
+    private async getPermissionCodesByUserId(userId: number): Promise<string[]> {
+        const userRoles = await this.userRoleRepository.find({
+            where: { userId },
+        })
+
+        if (userRoles.length === 0) {
+            return []
+        }
+
+        const roles = await this.roleRepository.find({
+            where: {
+                id: In(userRoles.map((item) => item.roleId)),
+            },
+        })
+
+        if (roles.length === 0) {
+            return []
         }
 
         const rolePermissions = await this.rolePermissionRepository.find({
             where: {
-                roleId: In(enabledRoles.map((role) => role.id)),
+                roleId: In(roles.map((item) => item.id)),
             },
         })
 
         if (rolePermissions.length === 0) {
-            return {
-                roleCodes,
-                permCodes: [],
-            }
+            return []
         }
 
-        const permissionIds = rolePermissions.map((item) => item.permissionId)
         const permissions = await this.permissionRepository.find({
             where: {
-                id: In(permissionIds),
+                id: In(rolePermissions.map((item) => item.permissionId)),
             },
         })
 
-        const permCodes = [
-            ...new Set(
-                permissions.filter((permission) => permission.status === 1).map((permission) => permission.permCode),
-            ),
-        ]
-
-        return {
-            roleCodes,
-            permCodes,
-        }
+        return permissions.map((item) => item.permCode)
     }
 }

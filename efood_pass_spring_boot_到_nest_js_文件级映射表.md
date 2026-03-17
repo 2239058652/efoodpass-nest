@@ -578,7 +578,7 @@ src/modules/system/role/
     create-role.dto.ts
     update-role.dto.ts
     assign-role-permissions.dto.ts
-    role-response.dto.ts
+    role-list-response.dto.ts
   entities/
     role.entity.ts
     role-permission.entity.ts

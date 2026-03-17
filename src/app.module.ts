@@ -10,6 +10,9 @@ import { AppService } from './app.service'
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard'
 import { PermissionsGuard } from './common/guards/permissions.guard'
 import { AuthModule } from './modules/auth/auth.module'
+import { PermissionModule } from './modules/system/permission/permission.module'
+import { RoleModule } from './modules/system/role/role.module'
+import { UserModule } from './modules/system/user/user.module'
 
 @Module({
     imports: [
@@ -23,6 +26,9 @@ import { AuthModule } from './modules/auth/auth.module'
             useFactory: (dbConfig: ConfigType<typeof databaseConfig>) => dbConfig,
         }),
         AuthModule,
+        UserModule,
+        RoleModule,
+        PermissionModule,
     ],
     controllers: [AppController],
     providers: [

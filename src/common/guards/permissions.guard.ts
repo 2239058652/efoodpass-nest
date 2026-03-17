@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@
 import { Reflector } from '@nestjs/core'
 import { BizErrorCode } from '../constants/biz-error-code'
 import { PERMISSIONS_KEY } from '../decorators/require-permissions.decorator'
-import { CurrentUser } from '../interfaces/current-user.interface'
+import type { CurrentUser } from '../interfaces/current-user.interface'
 import { BusinessException } from '../exceptions/business.exception'
 
 @Injectable()
@@ -25,8 +25,8 @@ export class PermissionsGuard implements CanActivate {
             throw new ForbiddenException('当前用户上下文不存在')
         }
 
-        const permCodeSet = new Set(currentUser.permCodes ?? [])
-        const hasPermission = requiredPermissions.every((code) => permCodeSet.has(code))
+        const codeSet = new Set(currentUser.permissionCodes ?? [])
+        const hasPermission = requiredPermissions.every((code) => codeSet.has(code))
 
         if (!hasPermission) {
             throw new BusinessException(BizErrorCode.FORBIDDEN, '无权限访问该接口')
