@@ -15,7 +15,10 @@ export const BizErrorCode = {
     USER_DISABLED: 30002,
 
     ROLE_NOT_FOUND: 31000,
+    ROLE_DISABLED: 31001,
+
     PERMISSION_NOT_FOUND: 32000,
+    PERMISSION_DISABLED: 32001,
 } as const
 
 export type BizErrorCodeKey = keyof typeof BizErrorCode
