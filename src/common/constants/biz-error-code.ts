@@ -1,0 +1,21 @@
+export const BizErrorCode = {
+    SUCCESS: 200,
+
+    COMMON_ERROR: 10000,
+    VALIDATION_ERROR: 10001,
+    NOT_FOUND: 10002,
+
+    UNAUTHORIZED: 20000,
+    FORBIDDEN: 20001,
+    TOKEN_INVALID: 20002,
+    TOKEN_EXPIRED: 20003,
+
+    USER_NOT_FOUND: 30000,
+    USERNAME_OR_PASSWORD_INVALID: 30001,
+    USER_DISABLED: 30002,
+
+    ROLE_NOT_FOUND: 31000,
+    PERMISSION_NOT_FOUND: 32000,
+} as const
+
+export type BizErrorCodeKey = keyof typeof BizErrorCode
