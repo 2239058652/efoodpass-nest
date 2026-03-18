@@ -14,6 +14,7 @@ import { UpdateItemDto } from './dto/update-item.dto'
 import { FoodItemEntity } from './entities/food-item.entity'
 import { BizErrorCode } from '../../../common/constants/biz-error-code'
 import { OperationLogService } from '../../system/operation-log/operation-log.service'
+import { FoodOrderItemEntity } from '../order/entities/food-order-item.entity'
 
 @Injectable()
 export class ItemService {
@@ -22,6 +23,8 @@ export class ItemService {
         private readonly itemRepository: Repository<FoodItemEntity>,
         @InjectRepository(FoodCategoryEntity)
         private readonly categoryRepository: Repository<FoodCategoryEntity>,
+        @InjectRepository(FoodOrderItemEntity)
+        private readonly orderItemRepository: Repository<FoodOrderItemEntity>,
         private readonly operationLogService: OperationLogService,
     ) {}
 
@@ -192,6 +195,14 @@ export class ItemService {
         const item = await this.itemRepository.findOne({ where: { id } })
         if (!item) {
             throw new BusinessException(BizErrorCode.ITEM_NOT_FOUND, '菜品不存在')
+        }
+
+        const orderItemCount = await this.orderItemRepository.count({
+            where: { foodItemId: id },
+        })
+
+        if (orderItemCount > 0) {
+            throw new BusinessException(BizErrorCode.ITEM_IN_ORDER, '菜品已被订单引用，不能删除')
         }
 
         await this.itemRepository.delete(id)

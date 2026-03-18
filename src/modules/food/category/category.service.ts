@@ -12,10 +12,13 @@ import { UpdateCategoryStatusDto } from './dto/update-category-status.dto'
 import { FoodCategoryEntity } from './entities/food-category.entity'
 import { BizErrorCode } from '../../../common/constants/biz-error-code'
 import { OperationLogService } from '../../system/operation-log/operation-log.service'
+import { FoodItemEntity } from '../item/entities/food-item.entity'
 
 @Injectable()
 export class CategoryService {
     constructor(
+        @InjectRepository(FoodItemEntity)
+        private readonly itemRepository: Repository<FoodItemEntity>,
         @InjectRepository(FoodCategoryEntity)
         private readonly categoryRepository: Repository<FoodCategoryEntity>,
         private readonly operationLogService: OperationLogService,
@@ -158,6 +161,14 @@ export class CategoryService {
         const category = await this.categoryRepository.findOne({ where: { id } })
         if (!category) {
             throw new BusinessException(BizErrorCode.CATEGORY_NOT_FOUND, '分类不存在')
+        }
+
+        const itemCount = await this.itemRepository.count({
+            where: { categoryId: id },
+        })
+
+        if (itemCount > 0) {
+            throw new BusinessException(BizErrorCode.CATEGORY_IN_USE, '分类已被菜品引用，不能删除')
         }
 
         await this.categoryRepository.delete(id)
