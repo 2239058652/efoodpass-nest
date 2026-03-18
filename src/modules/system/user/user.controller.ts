@@ -7,61 +7,62 @@ import { UpdateUserStatusDto } from './dto/update-user-status.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
 import { UserListQueryDto } from './dto/user-list-query.dto'
 import { UserService } from './user.service'
+import { PermissionCode } from '../../../common/constants/permission.constants'
 
 @Controller('system/user')
 export class UserController {
     constructor(private readonly userService: UserService) {}
 
     @Get('list')
-    @RequirePermissions('system:user:list')
+    @RequirePermissions(PermissionCode.SYSTEM_USER_LIST)
     async list(@Query() query: UserListQueryDto) {
         return this.userService.listUsers(query)
     }
 
     @Post()
-    @RequirePermissions('system:user:add')
+    @RequirePermissions(PermissionCode.SYSTEM_USER_ADD)
     async create(@Body() request: CreateUserDto) {
         await this.userService.createUser(request)
         return null
     }
 
     @Post('assign-role')
-    @RequirePermissions('system:user:assign-role')
+    @RequirePermissions(PermissionCode.SYSTEM_USER_ASSIGN_ROLE)
     async assignRole(@Body() request: AssignUserRoleDto) {
         await this.userService.assignRoles(request)
         return null
     }
 
     @Put('status')
-    @RequirePermissions('system:user:update')
+    @RequirePermissions(PermissionCode.SYSTEM_USER_UPDATE)
     async updateStatus(@Body() request: UpdateUserStatusDto) {
         await this.userService.updateUserStatus(request)
         return null
     }
 
     @Delete(':id')
-    @RequirePermissions('system:user:delete')
+    @RequirePermissions(PermissionCode.SYSTEM_USER_DELETE)
     async delete(@Param('id', ParseIntPipe) id: number) {
         await this.userService.deleteUser(id)
         return null
     }
 
     @Put()
-    @RequirePermissions('system:user:update')
+    @RequirePermissions(PermissionCode.SYSTEM_USER_UPDATE)
     async update(@Body() request: UpdateUserDto) {
         await this.userService.updateUser(request)
         return null
     }
 
     @Put('reset-password')
-    @RequirePermissions('system:user:update')
+    @RequirePermissions(PermissionCode.SYSTEM_USER_UPDATE)
     async resetPassword(@Body() request: ResetUserPasswordDto) {
         await this.userService.resetPassword(request)
         return null
     }
 
     @Get(':id')
-    @RequirePermissions('system:user:list')
+    @RequirePermissions(PermissionCode.SYSTEM_USER_LIST)
     async detail(@Param('id', ParseIntPipe) id: number) {
         return this.userService.getUserDetail(id)
     }

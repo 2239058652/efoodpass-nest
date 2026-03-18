@@ -9,46 +9,47 @@ import { OrderListQueryDto } from './dto/order-list-query.dto'
 import { ProcessOrderDto } from './dto/process-order.dto'
 import { OrderService } from './order.service'
 import { OrderStatQueryDto } from './dto/order-stat-query.dto'
+import { PermissionCode } from '../../../common/constants/permission.constants'
 
 @Controller('food/order')
 export class OrderController {
     constructor(private readonly orderService: OrderService) {}
 
     @Get('list')
-    @RequirePermissions('food:order:list')
+    @RequirePermissions(PermissionCode.FOOD_ORDER_LIST)
     async list(@Query() query: OrderListQueryDto) {
         return this.orderService.listOrders(query)
     }
 
     @Get(':id')
-    @RequirePermissions('food:order:detail')
+    @RequirePermissions(PermissionCode.FOOD_ORDER_DETAIL)
     async detail(@Param('id', ParseIntPipe) id: number) {
         return this.orderService.getOrderDetail(id)
     }
 
     @Post()
-    @RequirePermissions('food:order:add')
+    @RequirePermissions(PermissionCode.FOOD_ITEM_ADD)
     async createCurrentUserOrder(@CurrentUserDecorator() currentUser: CurrentUser, @Body() request: CreateOrderDto) {
         await this.orderService.createCurrentUserOrder(currentUser, request)
         return null
     }
 
     @Put('process')
-    @RequirePermissions('food:order:process')
+    @RequirePermissions(PermissionCode.FOOD_ORDER_PROCESS)
     async process(@Body() request: ProcessOrderDto) {
         await this.orderService.processOrder(request)
         return null
     }
 
     @Put('finish')
-    @RequirePermissions('food:order:finish')
+    @RequirePermissions(PermissionCode.FOOD_ORDER_FINISH)
     async finish(@Body() request: FinishOrderDto) {
         await this.orderService.finishOrder(request)
         return null
     }
 
     @Put('cancel')
-    @RequirePermissions('food:order:cancel')
+    @RequirePermissions(PermissionCode.FOOD_ORDER_CANCEL)
     async cancel(@Body() request: CancelOrderDto) {
         await this.orderService.cancelOrder(request)
         return null
@@ -71,25 +72,25 @@ export class OrderController {
     }
 
     @Get('stat/overview')
-    @RequirePermissions('food:order:stat')
+    @RequirePermissions(PermissionCode.FOOD_ORDER_STAT)
     async overview(@Query() query: OrderStatQueryDto) {
         return this.orderService.getOrderOverview(query)
     }
 
     @Get('stat/status')
-    @RequirePermissions('food:order:stat')
+    @RequirePermissions(PermissionCode.FOOD_ORDER_STAT)
     async statusStats(@Query() query: OrderStatQueryDto) {
         return this.orderService.getOrderStatusStats(query)
     }
 
     @Get('stat/hot-items')
-    @RequirePermissions('food:order:stat')
+    @RequirePermissions(PermissionCode.FOOD_ORDER_STAT)
     async hotItems(@Query() query: OrderStatQueryDto) {
         return this.orderService.getHotItemStats(query)
     }
 
     @Get('stat/daily-amount')
-    @RequirePermissions('food:order:stat')
+    @RequirePermissions(PermissionCode.FOOD_ORDER_STAT)
     async dailyAmount(@Query() query: OrderStatQueryDto) {
         return this.orderService.getDailyAmountStats(query)
     }

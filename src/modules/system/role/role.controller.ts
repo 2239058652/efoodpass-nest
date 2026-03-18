@@ -6,53 +6,54 @@ import { RoleListQueryDto } from './dto/role-list-query.dto'
 import { UpdateRoleStatusDto } from './dto/update-role-status.dto'
 import { UpdateRoleDto } from './dto/update-role.dto'
 import { RoleService } from './role.service'
+import { PermissionCode } from '../../../common/constants/permission.constants'
 
 @Controller('system/role')
 export class RoleController {
     constructor(private readonly roleService: RoleService) {}
 
     @Get('list')
-    @RequirePermissions('system:role:list')
+    @RequirePermissions(PermissionCode.SYSTEM_ROLE_LIST)
     async list(@Query() query: RoleListQueryDto) {
         return this.roleService.listRoles(query)
     }
 
     @Post()
-    @RequirePermissions('system:role:add')
+    @RequirePermissions(PermissionCode.SYSTEM_ROLE_ADD)
     async create(@Body() request: CreateRoleDto) {
         await this.roleService.createRole(request)
         return null
     }
 
     @Post('assign-permission')
-    @RequirePermissions('system:role:assign-permission')
+    @RequirePermissions(PermissionCode.SYSTEM_ROLE_ASSIGN_PERMISSION)
     async assignPermission(@Body() request: AssignRolePermissionDto) {
         await this.roleService.assignPermissions(request)
         return null
     }
 
     @Put('status')
-    @RequirePermissions('system:role:update')
+    @RequirePermissions(PermissionCode.SYSTEM_ROLE_UPDATE)
     async updateStatus(@Body() request: UpdateRoleStatusDto) {
         await this.roleService.updateRoleStatus(request)
         return null
     }
 
     @Delete(':id')
-    @RequirePermissions('system:role:delete')
+    @RequirePermissions(PermissionCode.SYSTEM_ROLE_DELETE)
     async delete(@Param('id', ParseIntPipe) id: number) {
         await this.roleService.deleteRole(id)
         return null
     }
 
     @Get(':id')
-    @RequirePermissions('system:role:list')
+    @RequirePermissions(PermissionCode.SYSTEM_ROLE_LIST)
     async detail(@Param('id', ParseIntPipe) id: number) {
         return this.roleService.getRoleDetail(id)
     }
 
     @Put()
-    @RequirePermissions('system:role:update')
+    @RequirePermissions(PermissionCode.SYSTEM_ROLE_UPDATE)
     async update(@Body() request: UpdateRoleDto) {
         await this.roleService.updateRole(request)
         return null
