@@ -37,7 +37,6 @@ export const PermissionCode = {
     FOOD_ORDER_DETAIL: 'food:order:detail',
     FOOD_ORDER_ADD: 'food:order:add',
     FOOD_ORDER_PROCESS: 'food:order:process',
-    FOOD_ORDER_FINISH: 'food:order:finish',
     FOOD_ORDER_CANCEL: 'food:order:cancel',
-    FOOD_ORDER_STAT: 'food:order:stat',
+    FOOD_ORDER_COMPLETE: 'food:order:complete',
 } as const

@@ -1,29 +1,24 @@
 import { Injectable } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm'
 import { DataSource, In, Repository } from 'typeorm'
-import { BusinessException } from '../../../common/exceptions/business.exception'
+import { BizErrorCode } from '../../../common/constants/biz-error-code'
 import { OrderStatus } from '../../../common/constants/order.constants'
+import { BusinessException } from '../../../common/exceptions/business.exception'
 import { PageResultDto } from '../../../shared/page/page-result.dto'
-import { CurrentUser } from '../../../common/interfaces/current-user.interface'
+import { OperationLogService } from '../../system/operation-log/operation-log.service'
 import { UserEntity } from '../../system/user/entities/user.entity'
 import { FoodCategoryEntity } from '../category/entities/food-category.entity'
 import { FoodItemEntity } from '../item/entities/food-item.entity'
 import { CancelOrderDto } from './dto/cancel-order.dto'
 import { CreateOrderDto } from './dto/create-order.dto'
 import { FinishOrderDto } from './dto/finish-order.dto'
-import { OrderDetailResponseDto } from './dto/order-detail-response.dto'
+import { OrderDetailItemResponseDto, OrderDetailResponseDto } from './dto/order-detail-response.dto'
+import { OrderItemDto } from './dto/order-item.dto'
 import { OrderListQueryDto } from './dto/order-list-query.dto'
 import { OrderListResponseDto } from './dto/order-list-response.dto'
 import { ProcessOrderDto } from './dto/process-order.dto'
 import { FoodOrderEntity } from './entities/food-order.entity'
 import { FoodOrderItemEntity } from './entities/food-order-item.entity'
-import { OrderStatQueryDto } from './dto/order-stat-query.dto'
-import { OrderOverviewResponseDto } from './dto/order-overview-response.dto'
-import { OrderStatusStatResponseDto } from './dto/order-status-stat-response.dto'
-import { HotItemStatResponseDto } from './dto/hot-item-stat-response.dto'
-import { DailyAmountStatResponseDto } from './dto/daily-amount-stat-response.dto'
-import { BizErrorCode } from '../../../common/constants/biz-error-code'
-import { OperationLogService } from '../../system/operation-log/operation-log.service'
 
 @Injectable()
 export class OrderService {
@@ -85,7 +80,9 @@ export class OrderService {
     }
 
     async getOrderDetail(id: number): Promise<OrderDetailResponseDto> {
-        const order = await this.orderRepository.findOne({ where: { id } })
+        const order = await this.orderRepository.findOne({
+            where: { id },
+        })
         if (!order) {
             throw new BusinessException(BizErrorCode.ORDER_NOT_FOUND, '订单不存在')
         }
@@ -104,7 +101,7 @@ export class OrderService {
             remark: order.remark,
             createdAt: order.createdAt,
             updatedAt: order.updatedAt,
-            items: items.map((item) => ({
+            items: items.map<OrderDetailItemResponseDto>((item) => ({
                 id: item.id,
                 foodItemId: item.foodItemId,
                 foodNameSnapshot: item.foodNameSnapshot,
@@ -115,9 +112,9 @@ export class OrderService {
         }
     }
 
-    async createCurrentUserOrder(currentUser: CurrentUser, request: CreateOrderDto): Promise<void> {
+    async createOrder(request: CreateOrderDto): Promise<void> {
         const user = await this.userRepository.findOne({
-            where: { id: currentUser.userId },
+            where: { id: request.userId },
         })
 
         if (!user) {
@@ -128,9 +125,9 @@ export class OrderService {
             throw new BusinessException(BizErrorCode.AUTH_USER_DISABLED, '用户已被禁用')
         }
 
-        const mergedItems = this.mergeItems(request)
+        const mergedItems = this.mergeItems(request.items)
 
-        await this.dataSource.transaction(async (manager) => {
+        const createdOrder = await this.dataSource.transaction(async (manager) => {
             const foodItemIds = mergedItems.map((item) => item.foodItemId)
             const foodItems = await manager.find(FoodItemEntity, {
                 where: { id: In(foodItemIds) },
@@ -194,7 +191,6 @@ export class OrderService {
 
             for (const reqItem of mergedItems) {
                 const foodItem = itemMap.get(reqItem.foodItemId)!
-
                 foodItem.stock -= reqItem.quantity
                 await manager.save(FoodItemEntity, foodItem)
 
@@ -211,6 +207,26 @@ export class OrderService {
             }
 
             await manager.save(FoodOrderItemEntity, orderItems)
+            return order
+        })
+
+        await this.operationLogService.record({
+            userId: request.userId,
+            username: user.username,
+            module: '订单管理',
+            operation: '创建订单',
+            requestMethod: 'POST',
+            requestUri: '/food/order',
+            requestParams: JSON.stringify({
+                userId: request.userId,
+                itemCount: request.items.length,
+                remark: request.remark ?? null,
+            }),
+            responseData: JSON.stringify({
+                orderId: createdOrder.id,
+                orderNo: createdOrder.orderNo,
+            }),
+            status: 1,
         })
     }
 
@@ -225,11 +241,11 @@ export class OrderService {
         await this.orderRepository.save(order)
     }
 
-    async finishOrder(request: FinishOrderDto): Promise<void> {
+    async completeOrder(request: FinishOrderDto): Promise<void> {
         const order = await this.mustFindOrder(request.orderId)
 
         if (order.orderStatus !== OrderStatus.PROCESSING) {
-            throw new BusinessException(BizErrorCode.ORDER_FINISH_STATUS_INVALID, '当前订单状态不允许完成')
+            throw new BusinessException(BizErrorCode.ORDER_COMPLETE_STATUS_INVALID, '当前订单状态不允许完成')
         }
 
         order.orderStatus = OrderStatus.COMPLETED
@@ -271,6 +287,7 @@ export class OrderService {
             order.remark = request.reason ?? order.remark
             await manager.save(FoodOrderEntity, order)
         })
+
         await this.operationLogService.record({
             userId: null,
             username: null,
@@ -285,177 +302,31 @@ export class OrderService {
             responseData: JSON.stringify({
                 orderId: order.id,
                 orderNo: order.orderNo,
-                orderStatus: order.orderStatus,
+                orderStatus: OrderStatus.CANCELED,
             }),
             status: 1,
         })
     }
 
-    async listCurrentUserOrders(
-        currentUser: CurrentUser,
-        query: OrderListQueryDto,
-    ): Promise<PageResultDto<OrderListResponseDto>> {
-        return this.listOrders({
-            ...query,
-            userId: currentUser.userId,
-        })
-    }
-
-    async getCurrentUserOrderDetail(currentUser: CurrentUser, id: number): Promise<OrderDetailResponseDto> {
-        const detail = await this.getOrderDetail(id)
-        if (detail.userId !== currentUser.userId) {
-            throw new BusinessException(BizErrorCode.ORDER_VIEW_FORBIDDEN, '无权查看他人订单')
-        }
-        return detail
-    }
-
-    async cancelCurrentUserOrder(currentUser: CurrentUser, request: CancelOrderDto): Promise<void> {
-        const order = await this.mustFindOrder(request.orderId)
-        if (order.userId !== currentUser.userId) {
-            throw new BusinessException(BizErrorCode.ORDER_CANCEL_FORBIDDEN, '无权取消他人订单')
-        }
-
-        await this.cancelOrder(request)
-    }
-
-    async getOrderOverview(query: OrderStatQueryDto): Promise<OrderOverviewResponseDto> {
-        const qb = this.orderRepository.createQueryBuilder('o')
-        this.applyStatDateRange(qb, query)
-
-        const rows = await qb
-            .select('COUNT(*)', 'totalOrderCount')
-            .addSelect(
-                `SUM(CASE WHEN o.order_status = ${OrderStatus.PENDING_CONFIRM} THEN 1 ELSE 0 END)`,
-                'pendingCount',
-            )
-            .addSelect(`SUM(CASE WHEN o.order_status = ${OrderStatus.PROCESSING} THEN 1 ELSE 0 END)`, 'processingCount')
-            .addSelect(`SUM(CASE WHEN o.order_status = ${OrderStatus.COMPLETED} THEN 1 ELSE 0 END)`, 'completedCount')
-            .addSelect(`SUM(CASE WHEN o.order_status = ${OrderStatus.CANCELED} THEN 1 ELSE 0 END)`, 'canceledCount')
-            .addSelect(
-                `COALESCE(SUM(CASE WHEN o.order_status != ${OrderStatus.CANCELED} THEN o.total_amount ELSE 0 END), 0)`,
-                'totalAmount',
-            )
-            .getRawOne<{
-                totalOrderCount: string
-                pendingCount: string
-                processingCount: string
-                completedCount: string
-                canceledCount: string
-                totalAmount: string
-            }>()
-
-        return {
-            totalOrderCount: Number(rows?.totalOrderCount ?? 0),
-            pendingCount: Number(rows?.pendingCount ?? 0),
-            processingCount: Number(rows?.processingCount ?? 0),
-            completedCount: Number(rows?.completedCount ?? 0),
-            canceledCount: Number(rows?.canceledCount ?? 0),
-            totalAmount: Number(rows?.totalAmount ?? 0).toFixed(2),
-        }
-    }
-
-    async getOrderStatusStats(query: OrderStatQueryDto): Promise<OrderStatusStatResponseDto[]> {
-        const qb = this.orderRepository.createQueryBuilder('o')
-        this.applyStatDateRange(qb, query)
-
-        const rows = await qb
-            .select('o.order_status', 'orderStatus')
-            .addSelect('COUNT(*)', 'count')
-            .groupBy('o.order_status')
-            .orderBy('o.order_status', 'ASC')
-            .getRawMany<{ orderStatus: string; count: string }>()
-
-        return rows.map((row) => ({
-            orderStatus: Number(row.orderStatus),
-            count: Number(row.count),
-        }))
-    }
-
-    async getHotItemStats(query: OrderStatQueryDto): Promise<HotItemStatResponseDto[]> {
-        const qb = this.orderItemRepository
-            .createQueryBuilder('oi')
-            .innerJoin(FoodOrderEntity, 'o', 'o.id = oi.order_id')
-            .select('oi.food_item_id', 'foodItemId')
-            .addSelect('oi.food_name_snapshot', 'foodName')
-            .addSelect('SUM(oi.quantity)', 'totalQuantity')
-            .addSelect('SUM(oi.amount)', 'totalAmount')
-            .where('o.order_status != :canceled', {
-                canceled: OrderStatus.CANCELED,
-            })
-
-        if (query.startDate) {
-            qb.andWhere('o.created_at >= :startDate', {
-                startDate: `${query.startDate} 00:00:00`,
-            })
-        }
-
-        if (query.endDate) {
-            qb.andWhere('o.created_at <= :endDate', {
-                endDate: `${query.endDate} 23:59:59`,
-            })
-        }
-
-        const rows = await qb
-            .groupBy('oi.food_item_id')
-            .addGroupBy('oi.food_name_snapshot')
-            .orderBy('SUM(oi.quantity)', 'DESC')
-            .addOrderBy('SUM(oi.amount)', 'DESC')
-            .limit(10)
-            .getRawMany<{
-                foodItemId: string
-                foodName: string
-                totalQuantity: string
-                totalAmount: string
-            }>()
-
-        return rows.map((row) => ({
-            foodItemId: Number(row.foodItemId),
-            foodName: row.foodName,
-            totalQuantity: Number(row.totalQuantity),
-            totalAmount: Number(row.totalAmount ?? 0).toFixed(2),
-        }))
-    }
-
-    async getDailyAmountStats(query: OrderStatQueryDto): Promise<DailyAmountStatResponseDto[]> {
-        const qb = this.orderRepository
-            .createQueryBuilder('o')
-            .select('DATE(o.created_at)', 'statDate')
-            .addSelect('COUNT(*)', 'orderCount')
-            .addSelect(
-                `COALESCE(SUM(CASE WHEN o.order_status != ${OrderStatus.CANCELED} THEN o.total_amount ELSE 0 END), 0)`,
-                'totalAmount',
-            )
-
-        this.applyStatDateRange(qb, query)
-
-        const rows = await qb.groupBy('DATE(o.created_at)').orderBy('DATE(o.created_at)', 'ASC').getRawMany<{
-            statDate: string
-            orderCount: string
-            totalAmount: string
-        }>()
-
-        return rows.map((row) => ({
-            statDate: row.statDate,
-            orderCount: Number(row.orderCount),
-            totalAmount: Number(row.totalAmount ?? 0).toFixed(2),
-        }))
-    }
-
     private async mustFindOrder(id: number): Promise<FoodOrderEntity> {
-        const order = await this.orderRepository.findOne({ where: { id } })
+        const order = await this.orderRepository.findOne({
+            where: { id },
+        })
+
         if (!order) {
             throw new BusinessException(BizErrorCode.ORDER_NOT_FOUND, '订单不存在')
         }
+
         return order
     }
 
-    private mergeItems(request: CreateOrderDto): Array<{
+    private mergeItems(items: OrderItemDto[]): Array<{
         foodItemId: number
         quantity: number
     }> {
         const itemMap = new Map<number, number>()
 
-        for (const item of request.items) {
+        for (const item of items) {
             itemMap.set(item.foodItemId, (itemMap.get(item.foodItemId) ?? 0) + item.quantity)
         }
 
@@ -468,6 +339,7 @@ export class OrderService {
     private generateOrderNo(): string {
         const now = new Date()
         const pad = (n: number, l = 2) => String(n).padStart(l, '0')
+
         return [
             now.getFullYear(),
             pad(now.getMonth() + 1),
@@ -480,22 +352,5 @@ export class OrderService {
                 .toString()
                 .padStart(3, '0'),
         ].join('')
-    }
-
-    private applyStatDateRange(
-        qb: ReturnType<Repository<FoodOrderEntity>['createQueryBuilder']>,
-        query: OrderStatQueryDto,
-    ): void {
-        if (query.startDate) {
-            qb.andWhere('o.created_at >= :startDate', {
-                startDate: `${query.startDate} 00:00:00`,
-            })
-        }
-
-        if (query.endDate) {
-            qb.andWhere('o.created_at <= :endDate', {
-                endDate: `${query.endDate} 23:59:59`,
-            })
-        }
     }
 }
