@@ -13,6 +13,7 @@ import { UpdateItemOnSaleDto } from './dto/update-item-on-sale.dto'
 import { UpdateItemDto } from './dto/update-item.dto'
 import { FoodItemEntity } from './entities/food-item.entity'
 import { BizErrorCode } from '../../../common/constants/biz-error-code'
+import { OperationLogService } from '../../system/operation-log/operation-log.service'
 
 @Injectable()
 export class ItemService {
@@ -21,6 +22,7 @@ export class ItemService {
         private readonly itemRepository: Repository<FoodItemEntity>,
         @InjectRepository(FoodCategoryEntity)
         private readonly categoryRepository: Repository<FoodCategoryEntity>,
+        private readonly operationLogService: OperationLogService,
     ) {}
 
     async listItems(query: ItemListQueryDto): Promise<PageResultDto<ItemListResponseDto>> {
@@ -166,6 +168,24 @@ export class ItemService {
 
         item.stock = nextStock
         await this.itemRepository.save(item)
+        await this.operationLogService.record({
+            userId: null,
+            username: null,
+            module: '菜品管理',
+            operation: '调整库存',
+            requestMethod: 'PUT',
+            requestUri: '/food/item/stock',
+            requestParams: JSON.stringify({
+                itemId: request.itemId,
+                deltaStock: request.deltaStock,
+            }),
+            responseData: JSON.stringify({
+                itemId: item.id,
+                itemName: item.name,
+                currentStock: item.stock,
+            }),
+            status: 1,
+        })
     }
 
     async deleteItem(id: number): Promise<void> {

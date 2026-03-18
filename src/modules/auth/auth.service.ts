@@ -69,6 +69,13 @@ export class AuthService {
             operation: '用户登录',
             requestMethod: 'POST',
             requestUri: '/auth/login',
+            requestParams: JSON.stringify({
+                username: loginDto.username,
+            }),
+            responseData: JSON.stringify({
+                userId: user.id,
+                username: user.username,
+            }),
             status: 1,
         })
 

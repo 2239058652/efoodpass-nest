@@ -14,6 +14,7 @@ import { UpdateRoleDto } from './dto/update-role.dto'
 import { RoleEntity } from './entities/role.entity'
 import { RolePermissionEntity } from './entities/role-permission.entity'
 import { BizErrorCode } from '../../../common/constants/biz-error-code'
+import { OperationLogService } from '../operation-log/operation-log.service'
 
 @Injectable()
 export class RoleService {
@@ -24,6 +25,7 @@ export class RoleService {
         private readonly rolePermissionRepository: Repository<RolePermissionEntity>,
         @InjectRepository(PermissionEntity)
         private readonly permissionRepository: Repository<PermissionEntity>,
+        private readonly operationLogService: OperationLogService,
     ) {}
 
     async listRoles(query: RoleListQueryDto): Promise<PageResultDto<RoleListResponseDto>> {
@@ -110,6 +112,23 @@ export class RoleService {
                 }),
             ),
         )
+        await this.operationLogService.record({
+            userId: null,
+            username: null,
+            module: '角色管理',
+            operation: '分配权限',
+            requestMethod: 'POST',
+            requestUri: '/system/role/assign-permission',
+            requestParams: JSON.stringify({
+                roleId: request.roleId,
+                permissionIds: request.permissionIds,
+            }),
+            responseData: JSON.stringify({
+                roleId: request.roleId,
+                permissionCount: request.permissionIds.length,
+            }),
+            status: 1,
+        })
     }
 
     async updateRoleStatus(request: UpdateRoleStatusDto): Promise<void> {

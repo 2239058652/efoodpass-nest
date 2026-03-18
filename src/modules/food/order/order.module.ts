@@ -7,6 +7,7 @@ import { OrderController } from './order.controller'
 import { OrderService } from './order.service'
 import { FoodOrderEntity } from './entities/food-order.entity'
 import { FoodOrderItemEntity } from './entities/food-order-item.entity'
+import { OperationLogModule } from '../../system/operation-log/operation-log.module'
 
 @Module({
     imports: [
@@ -17,6 +18,7 @@ import { FoodOrderItemEntity } from './entities/food-order-item.entity'
             FoodCategoryEntity,
             UserEntity,
         ]),
+        OperationLogModule,
     ],
     controllers: [OrderController],
     providers: [OrderService],

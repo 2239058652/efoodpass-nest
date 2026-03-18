@@ -23,6 +23,7 @@ import { OrderStatusStatResponseDto } from './dto/order-status-stat-response.dto
 import { HotItemStatResponseDto } from './dto/hot-item-stat-response.dto'
 import { DailyAmountStatResponseDto } from './dto/daily-amount-stat-response.dto'
 import { BizErrorCode } from '../../../common/constants/biz-error-code'
+import { OperationLogService } from '../../system/operation-log/operation-log.service'
 
 @Injectable()
 export class OrderService {
@@ -39,6 +40,7 @@ export class OrderService {
         private readonly categoryRepository: Repository<FoodCategoryEntity>,
         @InjectRepository(UserEntity)
         private readonly userRepository: Repository<UserEntity>,
+        private readonly operationLogService: OperationLogService,
     ) {}
 
     async listOrders(query: OrderListQueryDto): Promise<PageResultDto<OrderListResponseDto>> {
@@ -268,6 +270,24 @@ export class OrderService {
             order.orderStatus = OrderStatus.CANCELED
             order.remark = request.reason ?? order.remark
             await manager.save(FoodOrderEntity, order)
+        })
+        await this.operationLogService.record({
+            userId: null,
+            username: null,
+            module: '订单管理',
+            operation: '取消订单',
+            requestMethod: 'PUT',
+            requestUri: '/food/order/cancel',
+            requestParams: JSON.stringify({
+                orderId: request.orderId,
+                reason: request.reason ?? null,
+            }),
+            responseData: JSON.stringify({
+                orderId: order.id,
+                orderNo: order.orderNo,
+                orderStatus: order.orderStatus,
+            }),
+            status: 1,
         })
     }
 

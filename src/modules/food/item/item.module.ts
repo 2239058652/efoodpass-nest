@@ -4,9 +4,10 @@ import { FoodCategoryEntity } from '../category/entities/food-category.entity'
 import { FoodItemEntity } from './entities/food-item.entity'
 import { ItemController } from './item.controller'
 import { ItemService } from './item.service'
+import { OperationLogModule } from '../../system/operation-log/operation-log.module'
 
 @Module({
-    imports: [TypeOrmModule.forFeature([FoodItemEntity, FoodCategoryEntity])],
+    imports: [TypeOrmModule.forFeature([FoodItemEntity, FoodCategoryEntity]), OperationLogModule],
     controllers: [ItemController],
     providers: [ItemService],
     exports: [ItemService],

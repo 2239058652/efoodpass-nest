@@ -11,12 +11,14 @@ import { UpdateCategoryDto } from './dto/update-category.dto'
 import { UpdateCategoryStatusDto } from './dto/update-category-status.dto'
 import { FoodCategoryEntity } from './entities/food-category.entity'
 import { BizErrorCode } from '../../../common/constants/biz-error-code'
+import { OperationLogService } from '../../system/operation-log/operation-log.service'
 
 @Injectable()
 export class CategoryService {
     constructor(
         @InjectRepository(FoodCategoryEntity)
         private readonly categoryRepository: Repository<FoodCategoryEntity>,
+        private readonly operationLogService: OperationLogService,
     ) {}
 
     async listCategories(query: CategoryListQueryDto): Promise<PageResultDto<CategoryListResponseDto>> {
@@ -79,13 +81,32 @@ export class CategoryService {
             throw new BusinessException(BizErrorCode.CATEGORY_NAME_DUPLICATE, '分类名称已存在')
         }
 
-        await this.categoryRepository.save(
+        const category = await this.categoryRepository.save(
             this.categoryRepository.create({
                 name: request.name,
                 sortNo: request.sortNo ?? 0,
                 status: request.status,
             }),
         )
+
+        await this.operationLogService.record({
+            userId: null,
+            username: null,
+            module: '分类管理',
+            operation: '创建分类',
+            requestMethod: 'POST',
+            requestUri: '/food/category',
+            requestParams: JSON.stringify({
+                name: request.name,
+                sortNo: request.sortNo ?? 0,
+                status: request.status,
+            }),
+            responseData: JSON.stringify({
+                categoryId: category.id,
+                name: category.name,
+            }),
+            status: 1,
+        })
     }
 
     async updateCategory(request: UpdateCategoryDto): Promise<void> {

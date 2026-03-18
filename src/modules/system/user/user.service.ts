@@ -16,6 +16,7 @@ import { UserDetailResponseDto } from './dto/user-detail-response.dto'
 import { UserListQueryDto } from './dto/user-list-query.dto'
 import { UserListResponseDto } from './dto/user-list-response.dto'
 import { BizErrorCode } from '../../../common/constants/biz-error-code'
+import { OperationLogService } from '../operation-log/operation-log.service'
 
 @Injectable()
 export class UserService {
@@ -26,6 +27,7 @@ export class UserService {
         private readonly userRoleRepository: Repository<UserRoleEntity>,
         @InjectRepository(RoleEntity)
         private readonly roleRepository: Repository<RoleEntity>,
+        private readonly operationLogService: OperationLogService,
     ) {}
 
     async listUsers(query: UserListQueryDto): Promise<PageResultDto<UserListResponseDto>> {
@@ -72,6 +74,25 @@ export class UserService {
         })
 
         await this.userRepository.save(user)
+        await this.operationLogService.record({
+            userId: null,
+            username: null,
+            module: '用户管理',
+            operation: '创建用户',
+            requestMethod: 'POST',
+            requestUri: '/system/user',
+            requestParams: JSON.stringify({
+                username: request.username,
+                nickname: request.nickname,
+                phone: request.phone ?? null,
+                status: request.status,
+            }),
+            responseData: JSON.stringify({
+                userId: user.id,
+                username: user.username,
+            }),
+            status: 1,
+        })
     }
 
     async assignRoles(request: AssignUserRoleDto): Promise<void> {
