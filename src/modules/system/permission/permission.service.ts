@@ -10,6 +10,7 @@ import { PermissionListResponseDto } from './dto/permission-list-response.dto'
 import { UpdatePermissionStatusDto } from './dto/update-permission-status.dto'
 import { UpdatePermissionDto } from './dto/update-permission.dto'
 import { PermissionEntity } from './entities/permission.entity'
+import { BizErrorCode } from '../../../common/constants/biz-error-code'
 
 @Injectable()
 export class PermissionService {
@@ -59,11 +60,11 @@ export class PermissionService {
         })
 
         if (exist) {
-            throw new BusinessException(4201, '权限编码已存在')
+            throw new BusinessException(BizErrorCode.PERMISSION_CODE_DUPLICATE, '权限编码已存在')
         }
 
         if (![0, 1].includes(request.status)) {
-            throw new BusinessException(4210, '权限状态值不合法')
+            throw new BusinessException(BizErrorCode.PERMISSION_STATUS_INVALID, '权限状态值不合法')
         }
 
         await this.permissionRepository.save(
@@ -84,11 +85,11 @@ export class PermissionService {
         })
 
         if (!permission) {
-            throw new BusinessException(4204, '权限不存在')
+            throw new BusinessException(BizErrorCode.PERMISSION_NOT_FOUND, '权限不存在')
         }
 
         if (![0, 1].includes(request.status)) {
-            throw new BusinessException(4210, '权限状态值不合法')
+            throw new BusinessException(BizErrorCode.PERMISSION_STATUS_INVALID, '权限状态值不合法')
         }
 
         permission.status = request.status
@@ -101,7 +102,7 @@ export class PermissionService {
         })
 
         if (!permission) {
-            throw new BusinessException(4204, '权限不存在')
+            throw new BusinessException(BizErrorCode.PERMISSION_NOT_FOUND, '权限不存在')
         }
 
         await this.permissionRepository.delete(id)
@@ -113,11 +114,11 @@ export class PermissionService {
         })
 
         if (!permission) {
-            throw new BusinessException(4204, '权限不存在')
+            throw new BusinessException(BizErrorCode.PERMISSION_NOT_FOUND, '权限不存在')
         }
 
         if (![0, 1].includes(request.status)) {
-            throw new BusinessException(4210, '权限状态值不合法')
+            throw new BusinessException(BizErrorCode.PERMISSION_STATUS_INVALID, '权限状态值不合法')
         }
 
         permission.permName = request.permName
@@ -135,7 +136,7 @@ export class PermissionService {
         })
 
         if (!permission) {
-            throw new BusinessException(4204, '权限不存在')
+            throw new BusinessException(BizErrorCode.PERMISSION_NOT_FOUND, '权限不存在')
         }
 
         return {

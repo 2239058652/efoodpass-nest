@@ -13,6 +13,7 @@ import { UpdateRoleStatusDto } from './dto/update-role-status.dto'
 import { UpdateRoleDto } from './dto/update-role.dto'
 import { RoleEntity } from './entities/role.entity'
 import { RolePermissionEntity } from './entities/role-permission.entity'
+import { BizErrorCode } from '../../../common/constants/biz-error-code'
 
 @Injectable()
 export class RoleService {
@@ -63,11 +64,11 @@ export class RoleService {
         })
 
         if (exist) {
-            throw new BusinessException(4101, '角色编码已存在')
+            throw new BusinessException(BizErrorCode.ROLE_CODE_DUPLICATE, '角色编码已存在')
         }
 
         if (![0, 1].includes(request.status)) {
-            throw new BusinessException(4110, '角色状态值不合法')
+            throw new BusinessException(BizErrorCode.ROLE_STATUS_INVALID, '角色状态值不合法')
         }
 
         await this.roleRepository.save(
@@ -85,7 +86,7 @@ export class RoleService {
         })
 
         if (!role) {
-            throw new BusinessException(4104, '角色不存在')
+            throw new BusinessException(BizErrorCode.ROLE_NOT_FOUND, '角色不存在')
         }
 
         const permissionCount = await this.permissionRepository.count({
@@ -96,7 +97,7 @@ export class RoleService {
         })
 
         if (permissionCount !== request.permissionIds.length) {
-            throw new BusinessException(4205, '权限不存在或已禁用')
+            throw new BusinessException(BizErrorCode.PERMISSION_NOT_FOUND_OR_DISABLED, '权限不存在或已禁用')
         }
 
         await this.rolePermissionRepository.delete({ roleId: request.roleId })
@@ -117,15 +118,15 @@ export class RoleService {
         })
 
         if (!role) {
-            throw new BusinessException(4104, '角色不存在')
+            throw new BusinessException(BizErrorCode.ROLE_NOT_FOUND, '角色不存在')
         }
 
         if (![0, 1].includes(request.status)) {
-            throw new BusinessException(4110, '角色状态值不合法')
+            throw new BusinessException(BizErrorCode.ROLE_STATUS_INVALID, '角色状态值不合法')
         }
 
         if (role.roleCode === 'ADMIN' && request.status === 0) {
-            throw new BusinessException(4111, '系统管理员角色不能被禁用')
+            throw new BusinessException(BizErrorCode.ROLE_ADMIN_DISABLE_FORBIDDEN, '系统管理员角色不能被禁用')
         }
 
         role.status = request.status
@@ -138,11 +139,11 @@ export class RoleService {
         })
 
         if (!role) {
-            throw new BusinessException(4104, '角色不存在')
+            throw new BusinessException(BizErrorCode.ROLE_NOT_FOUND, '角色不存在')
         }
 
         if (role.roleCode === 'ADMIN') {
-            throw new BusinessException(4116, '系统管理员角色不能被删除')
+            throw new BusinessException(BizErrorCode.ROLE_ADMIN_DELETE_FORBIDDEN, '系统管理员角色不能被删除')
         }
 
         await this.rolePermissionRepository.delete({ roleId: id })
@@ -155,7 +156,7 @@ export class RoleService {
         })
 
         if (!role) {
-            throw new BusinessException(4104, '角色不存在')
+            throw new BusinessException(BizErrorCode.ROLE_NOT_FOUND, '角色不存在')
         }
 
         const relations = await this.rolePermissionRepository.find({
@@ -177,15 +178,15 @@ export class RoleService {
         })
 
         if (!role) {
-            throw new BusinessException(4104, '角色不存在')
+            throw new BusinessException(BizErrorCode.ROLE_NOT_FOUND, '角色不存在')
         }
 
         if (![0, 1].includes(request.status)) {
-            throw new BusinessException(4110, '角色状态值不合法')
+            throw new BusinessException(BizErrorCode.ROLE_STATUS_INVALID, '角色状态值不合法')
         }
 
         if (role.roleCode === 'ADMIN' && request.status === 0) {
-            throw new BusinessException(4111, '系统管理员角色不能被禁用')
+            throw new BusinessException(BizErrorCode.ROLE_ADMIN_DISABLE_FORBIDDEN, '系统管理员角色不能被禁用')
         }
 
         role.roleName = request.roleName

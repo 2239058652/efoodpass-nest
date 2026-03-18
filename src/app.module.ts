@@ -15,6 +15,8 @@ import { RoleModule } from './modules/system/role/role.module'
 import { UserModule } from './modules/system/user/user.module'
 import { CategoryModule } from './modules/food/category/category.module'
 import { ItemModule } from './modules/food/item/item.module'
+import { OrderModule } from './modules/food/order/order.module'
+import { OperationLogModule } from './modules/system/operation-log/operation-log.module'
 
 @Module({
     imports: [
@@ -33,6 +35,8 @@ import { ItemModule } from './modules/food/item/item.module'
         PermissionModule,
         CategoryModule,
         ItemModule,
+        OrderModule,
+        OperationLogModule,
     ],
     controllers: [AppController],
     providers: [

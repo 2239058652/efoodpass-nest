@@ -15,6 +15,7 @@ import { UpdateUserDto } from './dto/update-user.dto'
 import { UserDetailResponseDto } from './dto/user-detail-response.dto'
 import { UserListQueryDto } from './dto/user-list-query.dto'
 import { UserListResponseDto } from './dto/user-list-response.dto'
+import { BizErrorCode } from '../../../common/constants/biz-error-code'
 
 @Injectable()
 export class UserService {
@@ -56,7 +57,7 @@ export class UserService {
         })
 
         if (existUser) {
-            throw new BusinessException(4001, '用户名已存在')
+            throw new BusinessException(BizErrorCode.AUTH_LOGIN_FAILED, '用户名已存在')
         }
 
         const passwordHash = await bcrypt.hash(request.password, 10)
@@ -79,7 +80,7 @@ export class UserService {
         })
 
         if (!user) {
-            throw new BusinessException(4004, '用户不存在')
+            throw new BusinessException(BizErrorCode.AUTH_USER_NOT_FOUND, '用户不存在')
         }
 
         const roleCount = await this.roleRepository.count({
@@ -90,7 +91,7 @@ export class UserService {
         })
 
         if (roleCount !== request.roleIds.length) {
-            throw new BusinessException(4005, '角色不存在或已禁用')
+            throw new BusinessException(BizErrorCode.AUTH_ROLE_NOT_FOUND_OR_DISABLED, '角色不存在或已禁用')
         }
 
         await this.userRoleRepository.delete({ userId: request.userId })
@@ -111,15 +112,15 @@ export class UserService {
         })
 
         if (!user) {
-            throw new BusinessException(4004, '用户不存在')
+            throw new BusinessException(BizErrorCode.AUTH_USER_NOT_FOUND, '用户不存在')
         }
 
         if (![0, 1].includes(request.status)) {
-            throw new BusinessException(4010, '用户状态值不合法')
+            throw new BusinessException(BizErrorCode.USER_STATUS_INVALID, '用户状态值不合法')
         }
 
         if (user.username === 'admin' && request.status === 0) {
-            throw new BusinessException(4011, '系统管理员不能被禁用')
+            throw new BusinessException(BizErrorCode.USER_ADMIN_DISABLE_FORBIDDEN, '系统管理员不能被禁用')
         }
 
         user.status = request.status
@@ -132,11 +133,11 @@ export class UserService {
         })
 
         if (!user) {
-            throw new BusinessException(4004, '用户不存在')
+            throw new BusinessException(BizErrorCode.AUTH_USER_NOT_FOUND, '用户不存在')
         }
 
         if (user.username === 'admin') {
-            throw new BusinessException(4016, '系统管理员不能被删除')
+            throw new BusinessException(BizErrorCode.USER_ADMIN_DELETE_FORBIDDEN, '系统管理员不能被删除')
         }
 
         await this.userRoleRepository.delete({ userId })
@@ -149,15 +150,15 @@ export class UserService {
         })
 
         if (!user) {
-            throw new BusinessException(4004, '用户不存在')
+            throw new BusinessException(BizErrorCode.AUTH_USER_NOT_FOUND, '用户不存在')
         }
 
         if (![0, 1].includes(request.status)) {
-            throw new BusinessException(4010, '用户状态值不合法')
+            throw new BusinessException(BizErrorCode.USER_STATUS_INVALID, '用户状态值不合法')
         }
 
         if (user.username === 'admin' && request.status === 0) {
-            throw new BusinessException(4011, '系统管理员不能被禁用')
+            throw new BusinessException(BizErrorCode.USER_ADMIN_DISABLE_FORBIDDEN, '系统管理员不能被禁用')
         }
 
         user.nickname = request.nickname
@@ -173,7 +174,7 @@ export class UserService {
         })
 
         if (!user) {
-            throw new BusinessException(4004, '用户不存在')
+            throw new BusinessException(BizErrorCode.AUTH_USER_NOT_FOUND, '用户不存在')
         }
 
         user.passwordHash = await bcrypt.hash(request.newPassword, 10)
@@ -188,7 +189,7 @@ export class UserService {
         })
 
         if (!user) {
-            throw new BusinessException(4004, '用户不存在')
+            throw new BusinessException(BizErrorCode.AUTH_USER_NOT_FOUND, '用户不存在')
         }
 
         const userRoles = await this.userRoleRepository.find({

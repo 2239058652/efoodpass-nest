@@ -12,6 +12,7 @@ import { ItemListResponseDto } from './dto/item-list-response.dto'
 import { UpdateItemOnSaleDto } from './dto/update-item-on-sale.dto'
 import { UpdateItemDto } from './dto/update-item.dto'
 import { FoodItemEntity } from './entities/food-item.entity'
+import { BizErrorCode } from '../../../common/constants/biz-error-code'
 
 @Injectable()
 export class ItemService {
@@ -77,7 +78,7 @@ export class ItemService {
             .getRawOne<ItemDetailResponseDto>()
 
         if (!row) {
-            throw new BusinessException(6004, '菜品不存在')
+            throw new BusinessException(BizErrorCode.ITEM_NOT_FOUND, '菜品不存在')
         }
 
         return row
@@ -87,7 +88,7 @@ export class ItemService {
         await this.ensureCategoryUsable(request.categoryId)
 
         if (![0, 1].includes(request.isOnSale)) {
-            throw new BusinessException(6010, '上下架状态值不合法')
+            throw new BusinessException(BizErrorCode.ITEM_ON_SALE_STATUS_INVALID, '上下架状态值不合法')
         }
 
         await this.ensureNameUniqueInCategory(request.categoryId, request.name)
@@ -107,13 +108,13 @@ export class ItemService {
     async updateItem(request: UpdateItemDto): Promise<void> {
         const item = await this.itemRepository.findOne({ where: { id: request.id } })
         if (!item) {
-            throw new BusinessException(6004, '菜品不存在')
+            throw new BusinessException(BizErrorCode.ITEM_NOT_FOUND, '菜品不存在')
         }
 
         await this.ensureCategoryUsable(request.categoryId)
 
         if (![0, 1].includes(request.isOnSale)) {
-            throw new BusinessException(6010, '上下架状态值不合法')
+            throw new BusinessException(BizErrorCode.ITEM_ON_SALE_STATUS_INVALID, '上下架状态值不合法')
         }
 
         await this.ensureNameUniqueInCategory(request.categoryId, request.name, request.id)
@@ -134,11 +135,11 @@ export class ItemService {
         })
 
         if (!item) {
-            throw new BusinessException(6004, '菜品不存在')
+            throw new BusinessException(BizErrorCode.ITEM_NOT_FOUND, '菜品不存在')
         }
 
         if (![0, 1].includes(request.isOnSale)) {
-            throw new BusinessException(6010, '上下架状态值不合法')
+            throw new BusinessException(BizErrorCode.ITEM_ON_SALE_STATUS_INVALID, '上下架状态值不合法')
         }
 
         if (request.isOnSale === 1) {
@@ -155,12 +156,12 @@ export class ItemService {
         })
 
         if (!item) {
-            throw new BusinessException(6004, '菜品不存在')
+            throw new BusinessException(BizErrorCode.ITEM_NOT_FOUND, '菜品不存在')
         }
 
         const nextStock = item.stock + request.deltaStock
         if (nextStock < 0) {
-            throw new BusinessException(6011, '库存不能小于0')
+            throw new BusinessException(BizErrorCode.ITEM_STOCK_INVALID, '库存不能小于0')
         }
 
         item.stock = nextStock
@@ -170,7 +171,7 @@ export class ItemService {
     async deleteItem(id: number): Promise<void> {
         const item = await this.itemRepository.findOne({ where: { id } })
         if (!item) {
-            throw new BusinessException(6004, '菜品不存在')
+            throw new BusinessException(BizErrorCode.ITEM_NOT_FOUND, '菜品不存在')
         }
 
         await this.itemRepository.delete(id)
@@ -182,11 +183,11 @@ export class ItemService {
         })
 
         if (!category) {
-            throw new BusinessException(5004, '分类不存在')
+            throw new BusinessException(BizErrorCode.CATEGORY_NOT_FOUND, '分类不存在')
         }
 
         if (category.status !== 1) {
-            throw new BusinessException(5005, '分类已停用')
+            throw new BusinessException(BizErrorCode.CATEGORY_DISABLED, '分类已停用')
         }
     }
 
@@ -196,7 +197,7 @@ export class ItemService {
         })
 
         if (exist && exist.id !== excludeId) {
-            throw new BusinessException(6001, '同分类下菜品名称已存在')
+            throw new BusinessException(BizErrorCode.ITEM_NAME_DUPLICATE, '同分类下菜品名称已存在')
         }
     }
 

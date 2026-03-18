@@ -10,6 +10,7 @@ import { CreateCategoryDto } from './dto/create-category.dto'
 import { UpdateCategoryDto } from './dto/update-category.dto'
 import { UpdateCategoryStatusDto } from './dto/update-category-status.dto'
 import { FoodCategoryEntity } from './entities/food-category.entity'
+import { BizErrorCode } from '../../../common/constants/biz-error-code'
 
 @Injectable()
 export class CategoryService {
@@ -52,7 +53,7 @@ export class CategoryService {
     async getCategoryDetail(id: number): Promise<CategoryDetailResponseDto> {
         const category = await this.categoryRepository.findOne({ where: { id } })
         if (!category) {
-            throw new BusinessException(5004, '分类不存在')
+            throw new BusinessException(BizErrorCode.CATEGORY_NOT_FOUND, '分类不存在')
         }
 
         return {
@@ -67,7 +68,7 @@ export class CategoryService {
 
     async createCategory(request: CreateCategoryDto): Promise<void> {
         if (![0, 1].includes(request.status)) {
-            throw new BusinessException(5010, '分类状态值不合法')
+            throw new BusinessException(BizErrorCode.CATEGORY_STATUS_INVALID, '分类状态值不合法')
         }
 
         const exist = await this.categoryRepository.findOne({
@@ -75,7 +76,7 @@ export class CategoryService {
         })
 
         if (exist) {
-            throw new BusinessException(5001, '分类名称已存在')
+            throw new BusinessException(BizErrorCode.CATEGORY_NAME_DUPLICATE, '分类名称已存在')
         }
 
         await this.categoryRepository.save(
@@ -93,11 +94,11 @@ export class CategoryService {
         })
 
         if (!category) {
-            throw new BusinessException(5004, '分类不存在')
+            throw new BusinessException(BizErrorCode.CATEGORY_NOT_FOUND, '分类不存在')
         }
 
         if (![0, 1].includes(request.status)) {
-            throw new BusinessException(5010, '分类状态值不合法')
+            throw new BusinessException(BizErrorCode.CATEGORY_STATUS_INVALID, '分类状态值不合法')
         }
 
         const sameName = await this.categoryRepository.findOne({
@@ -105,7 +106,7 @@ export class CategoryService {
         })
 
         if (sameName && sameName.id !== request.id) {
-            throw new BusinessException(5001, '分类名称已存在')
+            throw new BusinessException(BizErrorCode.CATEGORY_NAME_DUPLICATE, '分类名称已存在')
         }
 
         category.name = request.name
@@ -121,11 +122,11 @@ export class CategoryService {
         })
 
         if (!category) {
-            throw new BusinessException(5004, '分类不存在')
+            throw new BusinessException(BizErrorCode.CATEGORY_NOT_FOUND, '分类不存在')
         }
 
         if (![0, 1].includes(request.status)) {
-            throw new BusinessException(5010, '分类状态值不合法')
+            throw new BusinessException(BizErrorCode.CATEGORY_STATUS_INVALID, '分类状态值不合法')
         }
 
         category.status = request.status
@@ -135,7 +136,7 @@ export class CategoryService {
     async deleteCategory(id: number): Promise<void> {
         const category = await this.categoryRepository.findOne({ where: { id } })
         if (!category) {
-            throw new BusinessException(5004, '分类不存在')
+            throw new BusinessException(BizErrorCode.CATEGORY_NOT_FOUND, '分类不存在')
         }
 
         await this.categoryRepository.delete(id)

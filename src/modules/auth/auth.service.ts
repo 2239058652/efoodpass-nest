@@ -13,6 +13,8 @@ import { UserRoleEntity } from '../system/user/entities/user-role.entity'
 import { RoleEntity } from '../system/role/entities/role.entity'
 import { RolePermissionEntity } from '../system/role/entities/role-permission.entity'
 import { PermissionEntity } from '../system/permission/entities/permission.entity'
+import { OperationLogService } from '../system/operation-log/operation-log.service'
+import { BizErrorCode } from '../../common/constants/biz-error-code'
 
 @Injectable()
 export class AuthService {
@@ -28,6 +30,7 @@ export class AuthService {
         @InjectRepository(PermissionEntity)
         private readonly permissionRepository: Repository<PermissionEntity>,
         private readonly jwtService: JwtService,
+        private readonly operationLogService: OperationLogService,
     ) {}
 
     /**
@@ -40,16 +43,16 @@ export class AuthService {
         })
 
         if (!user) {
-            throw new BusinessException(4001, '用户名或密码错误')
+            throw new BusinessException(BizErrorCode.AUTH_LOGIN_FAILED, '用户名或密码错误')
         }
 
         if (user.status !== 1) {
-            throw new BusinessException(4002, '用户已被禁用')
+            throw new BusinessException(BizErrorCode.AUTH_USER_DISABLED, '用户已被禁用')
         }
 
         const matched = await bcrypt.compare(loginDto.password, user.passwordHash)
         if (!matched) {
-            throw new BusinessException(4001, '用户名或密码错误')
+            throw new BusinessException(BizErrorCode.AUTH_LOGIN_FAILED, '用户名或密码错误')
         }
 
         const token = await this.jwtService.signAsync({
@@ -57,6 +60,16 @@ export class AuthService {
             username: user.username,
             nickname: user.nickname,
             tokenVersion: user.tokenVersion ?? 0,
+        })
+
+        await this.operationLogService.record({
+            userId: user.id,
+            username: user.username,
+            module: '认证管理',
+            operation: '用户登录',
+            requestMethod: 'POST',
+            requestUri: '/auth/login',
+            status: 1,
         })
 
         return {
@@ -73,7 +86,7 @@ export class AuthService {
         })
 
         if (!user) {
-            throw new BusinessException(4004, '用户不存在')
+            throw new BusinessException(BizErrorCode.AUTH_USER_NOT_FOUND, '用户不存在')
         }
 
         const roleCodes = await this.getRoleCodesByUserId(userId)
@@ -99,15 +112,15 @@ export class AuthService {
         })
 
         if (!user) {
-            throw new BusinessException(4004, '用户不存在')
+            throw new BusinessException(BizErrorCode.AUTH_USER_NOT_FOUND, '用户不存在')
         }
 
         if (user.status !== 1) {
-            throw new BusinessException(4002, '用户已被禁用')
+            throw new BusinessException(BizErrorCode.AUTH_USER_DISABLED, '用户已被禁用')
         }
 
         if ((user.tokenVersion ?? 0) !== payload.tokenVersion) {
-            throw new BusinessException(4003, '登录状态已失效')
+            throw new BusinessException(BizErrorCode.AUTH_TOKEN_INVALID, '登录状态已失效')
         }
 
         const roleCodes = await this.getRoleCodesByUserId(user.id)

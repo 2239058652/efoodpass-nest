@@ -10,6 +10,7 @@ import { UserRoleEntity } from '../system/user/entities/user-role.entity'
 import { RoleEntity } from '../system/role/entities/role.entity'
 import { RolePermissionEntity } from '../system/role/entities/role-permission.entity'
 import { PermissionEntity } from '../system/permission/entities/permission.entity'
+import { OperationLogModule } from '../system/operation-log/operation-log.module'
 
 @Module({
     imports: [
@@ -23,6 +24,7 @@ import { PermissionEntity } from '../system/permission/entities/permission.entit
                 },
             }),
         }),
+        OperationLogModule,
     ],
     controllers: [AuthController],
     providers: [AuthService, JwtStrategy],
