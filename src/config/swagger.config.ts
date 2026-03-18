@@ -24,5 +24,7 @@ export function setupSwagger(app: INestApplication, configService: ConfigService
         .build()
 
     const document = SwaggerModule.createDocument(app, documentConfig)
-    SwaggerModule.setup(swaggerPath, app, document)
+    SwaggerModule.setup(swaggerPath, app, document, {
+        useGlobalPrefix: true,
+    })
 }

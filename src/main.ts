@@ -35,8 +35,8 @@ async function bootstrap() {
     await app.listen(port)
 
     const logger = new Logger('Bootstrap')
-    logger.log(`Server running on http://localhost:${port}`)
-    logger.log(`Swagger docs on http://localhost:${port}/${swaggerPath}`)
+    logger.log(`Server running on http://localhost:${port}/${process.env.GLOBAL_PREFIX}`)
+    logger.log(`Swagger docs on http://localhost:${port}/${process.env.GLOBAL_PREFIX}/${swaggerPath}`)
 }
 
 void bootstrap()

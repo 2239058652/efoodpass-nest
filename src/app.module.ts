@@ -14,6 +14,7 @@ import { PermissionModule } from './modules/system/permission/permission.module'
 import { RoleModule } from './modules/system/role/role.module'
 import { UserModule } from './modules/system/user/user.module'
 import { CategoryModule } from './modules/food/category/category.module'
+import { ItemModule } from './modules/food/item/item.module'
 
 @Module({
     imports: [
@@ -31,6 +32,7 @@ import { CategoryModule } from './modules/food/category/category.module'
         RoleModule,
         PermissionModule,
         CategoryModule,
+        ItemModule,
     ],
     controllers: [AppController],
     providers: [
