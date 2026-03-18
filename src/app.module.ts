@@ -13,12 +13,13 @@ import { AuthModule } from './modules/auth/auth.module'
 import { PermissionModule } from './modules/system/permission/permission.module'
 import { RoleModule } from './modules/system/role/role.module'
 import { UserModule } from './modules/system/user/user.module'
+import { CategoryModule } from './modules/food/category/category.module'
 
 @Module({
     imports: [
         ConfigModule.forRoot({
             isGlobal: true,
-            envFilePath: '.env.development',
+            envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
             load: [appConfig, databaseConfig, jwtConfig],
         }),
         TypeOrmModule.forRootAsync({
@@ -29,6 +30,7 @@ import { UserModule } from './modules/system/user/user.module'
         UserModule,
         RoleModule,
         PermissionModule,
+        CategoryModule,
     ],
     controllers: [AppController],
     providers: [

@@ -20,6 +20,7 @@ export function setupSwagger(app: INestApplication, configService: ConfigService
             },
             'bearer',
         )
+        .addSecurityRequirements('bearer')
         .build()
 
     const document = SwaggerModule.createDocument(app, documentConfig)
